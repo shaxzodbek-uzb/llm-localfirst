@@ -1,12 +1,15 @@
 name: Release
 
-# Publishes to PyPI on a version tag (e.g. `git tag v0.1.0 && git push --tags`).
-# Uses PyPI Trusted Publishing (OIDC) — no API token needed once the trusted
-# publisher is configured for this repo + workflow on pypi.org.
+# Publishes to PyPI using Trusted Publishing (OIDC) — no API token needed.
+# Manual trigger so it never red-fails before the trusted publisher is configured.
+# One-time setup on pypi.org -> Publishing -> Add a pending publisher:
+#   PyPI project name: llm-localfirst
+#   Owner: shaxzodbek-uzb   Repository: llm-localfirst
+#   Workflow name: release.yml   Environment: pypi
+# Then run this workflow from the Actions tab (or `gh workflow run release.yml`).
 
 on:
-  push:
-    tags: ["v*"]
+  workflow_dispatch:
 
 permissions:
   contents: read
