@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 840 400" width="840" height="400" font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace">
+  <style>
+    .t   { font-size: 14px; }
+    .dim { fill: #8b949e; }
+    .cmd { fill: #e6edf3; }
+    .prompt { fill: #3fb950; }
+    .flag { fill: #d2a8ff; }
+    .key { fill: #79c0ff; }
+    .ok  { fill: #3fb950; }
+    .danger { fill: #f0883e; font-weight: 700; }
+    .danger-dim { fill: #f0883e; }
+    .label { fill: #6e7681; font-size: 12px; }
+    .title { fill: #8b949e; font-size: 13px; }
+  </style>
+
+  <!-- window -->
+  <rect x="0.5" y="0.5" width="839" height="399" rx="12" fill="#0d1117" stroke="#30363d"/>
+  <!-- title bar -->
+  <rect x="1" y="1" width="838" height="40" rx="12" fill="#161b22"/>
+  <rect x="1" y="28" width="838" height="13" fill="#161b22"/>
+  <circle cx="24" cy="21" r="6" fill="#ff5f56"/>
+  <circle cx="44" cy="21" r="6" fill="#ffbd2e"/>
+  <circle cx="64" cy="21" r="6" fill="#27c93f"/>
+  <text x="420" y="26" text-anchor="middle" class="title">llm-localfirst — local-first routing, live</text>
+
+  <!-- body -->
+  <g class="t">
+    <!-- bulk -->
+    <text x="22" y="78"><tspan class="prompt">$ </tspan><tspan class="cmd">llm-localfirst route </tspan><tspan class="dim">"summarise this support thread" </tspan><tspan class="flag">--kind bulk</tspan></text>
+    <text x="22" y="104" class="dim"><tspan class="key">model</tspan> = haiku  ·  <tspan class="key">target</tspan> = cloud  ·  <tspan class="key">fell_back</tspan> = true</text>
+    <text x="22" y="124" class="dim">reason = local down → cloud fallback</text>
+    <text x="560" y="104" class="label">bulk work → cloud ✓</text>
+
+    <!-- sensitive -->
+    <text x="22" y="172"><tspan class="prompt">$ </tspan><tspan class="cmd">llm-localfirst route </tspan><tspan class="dim">"redact card 4111 1111 1111 1111" </tspan><tspan class="flag">--sensitive</tspan></text>
+    <text x="22" y="198" class="danger">error: sensitive call requires the local model, but it is</text>
+    <text x="22" y="218" class="danger">unreachable; failing closed</text>
+    <text x="22" y="240" class="danger-dim">(will not leak the prompt to the cloud)</text>
+    <text x="560" y="198" class="label">sensitive: refuses</text>
+    <text x="560" y="214" class="label">rather than leak ✓</text>
+
+    <!-- exit code -->
+    <text x="22" y="268"><tspan class="prompt">$ </tspan><tspan class="cmd">echo $?</tspan></text>
+    <text x="22" y="294" class="dim">1   <tspan class="label">— non-zero: the call did not run, nothing left the box</tspan></text>
+  </g>
+
+  <!-- footer caption -->
+  <rect x="1" y="340" width="838" height="59" fill="#0b0f14"/>
+  <line x1="1" y1="340" x2="839" y2="340" stroke="#21262d"/>
+  <text x="22" y="366" class="t" fill="#e6edf3">Same router. <tspan class="ok">Bulk falls back to cloud.</tspan>  <tspan class="danger">Sensitive fails closed — never the cloud.</tspan></text>
+  <text x="22" y="387" class="label">pip install llm-localfirst  ·  github.com/shaxzodbek-uzb/llm-localfirst</text>
+</svg>

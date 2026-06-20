@@ -8,6 +8,10 @@ models, and call the cloud only for the hard part.**
 [![Python](https://img.shields.io/pypi/pyversions/llm-localfirst.svg)](https://pypi.org/project/llm-localfirst/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
+<p align="center">
+  <img src="docs/demo.svg" alt="llm-localfirst CLI: bulk work falls back to cloud; a sensitive call fails closed and never reaches the cloud" width="820">
+</p>
+
 Most LLM routers optimize **which cloud provider** to call for cost or failover.
 `llm-localfirst` inverts the default: it runs on **your own local model first**
 (Ollama / vLLM / LM Studio) and reaches for the cloud only when the work genuinely
