@@ -9,7 +9,7 @@ models, and call the cloud only for the hard part.**
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 <p align="center">
-  <img src="docs/demo.svg" alt="llm-localfirst CLI: bulk work falls back to cloud; a sensitive call fails closed and never reaches the cloud" width="820">
+  <img src="https://raw.githubusercontent.com/shaxzodbek-uzb/llm-localfirst/main/docs/demo.svg" alt="llm-localfirst CLI: bulk work falls back to cloud; a sensitive call fails closed and never reaches the cloud" width="820">
 </p>
 
 Most LLM routers optimize **which cloud provider** to call for cost or failover.

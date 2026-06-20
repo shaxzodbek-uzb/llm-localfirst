@@ -6,6 +6,17 @@ All notable changes to this project are documented here. The format is based on
 
 ## [Unreleased]
 
+## [0.1.1] — 2026-06-20
+
+### Added
+- **`py.typed` marker (PEP 561)** — the package now ships its type information, so
+  downstream `mypy` / `pyright` users get full type checking against the public API.
+- A terminal **demo** in the README showing the fail-closed privacy guarantee live.
+- `mypy` added to the dev extra and the CI pipeline (the package type-checks clean).
+
+### Changed
+- README demo image uses an absolute URL so it renders on the PyPI project page too.
+
 ## [0.1.0] — 2026-06-20
 
 Initial release.
@@ -31,5 +42,6 @@ Initial release.
 - **CLI** (`llm-localfirst`): `doctor`, `route`, `complete`, `mcp`.
 - **Config** (`Settings`, env prefix `LF_`).
 
-[Unreleased]: https://github.com/shaxzodbek-uzb/llm-localfirst/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/shaxzodbek-uzb/llm-localfirst/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/shaxzodbek-uzb/llm-localfirst/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/shaxzodbek-uzb/llm-localfirst/releases/tag/v0.1.0
