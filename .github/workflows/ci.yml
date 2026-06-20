@@ -20,14 +20,17 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
+      - name: Create venv
+        run: uv venv
+
       - name: Install (dev extra only — tests must pass with no provider SDKs)
-        run: uv pip install --system -e '.[dev]'
+        run: uv pip install -e '.[dev]'
 
       - name: Lint
-        run: ruff check .
+        run: uv run ruff check .
 
       - name: Test
-        run: pytest -q
+        run: uv run pytest -q
 
   build:
     runs-on: ubuntu-latest
@@ -36,8 +39,7 @@ jobs:
       - uses: astral-sh/setup-uv@v5
         with:
           python-version: "3.12"
-      - name: Build & metadata check (catches packaging regressions)
-        run: |
-          uv pip install --system build twine
-          python -m build
-          twine check dist/*
+      - name: Build sdist + wheel
+        run: uv build
+      - name: Check metadata (catches packaging regressions)
+        run: uvx twine check dist/*
