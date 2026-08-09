@@ -4,7 +4,6 @@
 models, and call the cloud only for the hard part.**
 
 [![PyPI](https://img.shields.io/pypi/v/llm-localfirst.svg)](https://pypi.org/project/llm-localfirst/)
-[![CI](https://github.com/shaxzodbek-uzb/llm-localfirst/actions/workflows/ci.yml/badge.svg)](https://github.com/shaxzodbek-uzb/llm-localfirst/actions/workflows/ci.yml)
 [![Python](https://img.shields.io/pypi/pyversions/llm-localfirst.svg)](https://pypi.org/project/llm-localfirst/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
