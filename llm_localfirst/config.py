@@ -33,6 +33,14 @@ class Settings(BaseSettings):
         sensitive_fail_closed: When ``True``, sensitive calls fail closed (raise)
             rather than ever touching the cloud when local is unreachable.
         probe_ttl: Seconds to cache a local-reachability probe result.
+        prices: Per-million-token prices keyed by allowlist name, as
+            ``[input, output]`` — e.g. ``LF_PRICES='{"haiku": [0.8, 4.0]}'``. Empty
+            by default: this library does not ship a price table, because a stale
+            hard-coded number is worse than no number.
+        max_cloud_calls: Optional ceiling on cloud calls per process.
+        max_cloud_tokens: Optional ceiling on total cloud tokens per process.
+        max_cloud_cost: Optional ceiling on estimated cloud spend per process.
+            Requires a price for every allowlisted cloud model.
     """
 
     model_config = SettingsConfigDict(env_prefix="LF_", env_file=".env", extra="ignore")
@@ -49,3 +57,7 @@ class Settings(BaseSettings):
     reason_model: str = "haiku"
     sensitive_fail_closed: bool = True
     probe_ttl: float = 30.0
+    prices: dict[str, tuple[float, float]] = {}
+    max_cloud_calls: int | None = None
+    max_cloud_tokens: int | None = None
+    max_cloud_cost: float | None = None

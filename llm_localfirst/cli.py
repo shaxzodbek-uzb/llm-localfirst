@@ -16,6 +16,7 @@ single-line message when a :class:`~llm_localfirst.LocalFirstError` is raised.
 from __future__ import annotations
 
 import argparse
+import json
 import sys
 
 from .config import Settings
@@ -70,6 +71,11 @@ def _build_parser() -> argparse.ArgumentParser:
         default=None,
         help="Explicit allowlisted model name to use (overrides routing).",
     )
+    p_complete.add_argument(
+        "--usage",
+        action="store_true",
+        help="Print the token/spend tally for this call on stderr.",
+    )
 
     sub.add_parser("mcp", help="Start the MCP server on stdio.")
 
@@ -93,6 +99,19 @@ def _cmd_doctor() -> None:
     print(f"  reason_model          = {settings.reason_model}")
     print(f"  sensitive_fail_closed = {settings.sensitive_fail_closed}")
     print(f"  probe_ttl             = {settings.probe_ttl}")
+
+    print("Cloud budget:")
+    if router.budget is None:
+        print("  (none configured — cloud usage is accounted but not capped)")
+    else:
+        print(f"  max_cloud_calls       = {router.budget.max_cloud_calls}")
+        print(f"  max_cloud_tokens      = {router.budget.max_cloud_tokens}")
+        print(f"  max_cloud_cost        = {router.budget.max_cloud_cost}")
+    priced = sorted(router.ledger.prices)
+    unpriced = sorted(m.name for m in registry.by_target("cloud") if m.name not in priced)
+    print(f"  priced models         = {', '.join(priced) if priced else '(none)'}")
+    if unpriced:
+        print(f"  unpriced cloud models = {', '.join(unpriced)}  (set LF_PRICES to cost them)")
 
     print("Registry (allowlist):")
     for name in registry.names():
@@ -123,6 +142,9 @@ def _cmd_complete(args: argparse.Namespace) -> None:
         model=args.model,
     )
     print(result.text)
+    if args.usage:
+        # stderr so `lf complete ... > out.txt` still captures only the completion.
+        print(json.dumps(router.ledger.snapshot(), indent=2), file=sys.stderr)
 
 
 def _cmd_mcp() -> None:

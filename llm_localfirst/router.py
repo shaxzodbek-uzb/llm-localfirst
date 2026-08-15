@@ -31,6 +31,7 @@ from .errors import BackendError, PrivacyViolation
 from .policy import Decision, Kind, Policy
 from .reachability import Reachability
 from .registry import Registry, default_registry
+from .usage import Budget, Ledger, Price, normalise_usage
 
 _SOURCE_SEPARATOR = "\n\n--- Source text ---\n"
 
@@ -46,6 +47,8 @@ class Router:
         reachability: Reachability | None = None,
         backends: dict[str, Backend] | None = None,
         settings: Settings | None = None,
+        ledger: Ledger | None = None,
+        budget: Budget | None = None,
     ) -> None:
         """Wire the Router from its collaborators.
 
@@ -59,6 +62,14 @@ class Router:
                 stock backends (``openai_compat`` and ``anthropic``); they import
                 their provider SDK lazily, so constructing them needs nothing.
             settings: Optional settings kept for reference/introspection.
+            ledger: Token/spend tally. One is always created if omitted — accounting
+                is free and a router that can't say what it spent isn't much use.
+            budget: Optional ceiling on cloud usage, enforced at dispatch.
+
+        Raises:
+            ValueError: If ``budget`` sets a cost ceiling but some allowlisted cloud
+                model has no configured price, which would leave the ceiling unable
+                to ever trigger.
         """
         self.registry = registry
         self.policy = policy
@@ -68,6 +79,10 @@ class Router:
             "anthropic": AnthropicBackend(),
         }
         self.settings = settings
+        self.ledger = ledger or Ledger()
+        self.budget = budget
+        if budget is not None:
+            budget.require_prices_for(registry.by_target("cloud"), self.ledger.prices)
 
     @classmethod
     def from_env(cls) -> Router:
@@ -89,11 +104,19 @@ class Router:
             sensitive_fail_closed=settings.sensitive_fail_closed,
         )
         reachability = Reachability(ttl=settings.probe_ttl)
+        ledger = Ledger({name: Price(*pair) for name, pair in settings.prices.items()})
+        budget = Budget(
+            max_cloud_calls=settings.max_cloud_calls,
+            max_cloud_tokens=settings.max_cloud_tokens,
+            max_cloud_cost=settings.max_cloud_cost,
+        )
         return cls(
             registry=registry,
             policy=policy,
             reachability=reachability,
             settings=settings,
+            ledger=ledger,
+            budget=None if budget.is_empty else budget,
         )
 
     def decide(
@@ -112,9 +135,7 @@ class Router:
         kind = Kind(kind)
         local_ref = self.registry.get(self.policy.local_name)
         local_up = self.reachability.check(local_ref.base_url)
-        return self.policy.decide(
-            sensitive=sensitive, kind=kind, model=model, local_up=local_up
-        )
+        return self.policy.decide(sensitive=sensitive, kind=kind, model=model, local_up=local_up)
 
     async def acomplete(
         self,
@@ -136,6 +157,8 @@ class Router:
         Raises:
             PrivacyViolation: If a ``sensitive`` call somehow resolved to a cloud
                 target (defence-in-depth — should be impossible given the Policy).
+            BudgetExceeded: If the call targets the cloud and the configured budget
+                is already spent.
             BackendError: If no backend is registered for the chosen provider.
         """
         decision = self.decide(sensitive=sensitive, kind=kind, model=model)
@@ -149,6 +172,12 @@ class Router:
                 f"target ({decision.model.name}); sensitive data must stay local"
             )
 
+        # The same boundary, for money: a spent budget blocks the call rather than
+        # quietly overspending or silently rerouting. Local calls are never gated —
+        # they cost nothing and gating them would defeat the point of running local.
+        if self.budget is not None and decision.target == "cloud":
+            self.budget.check(self.ledger)
+
         backend = self.backends.get(decision.model.provider)
         if backend is None:
             raise BackendError(
@@ -157,9 +186,9 @@ class Router:
             )
 
         full_prompt = prompt if not source else f"{prompt}{_SOURCE_SEPARATOR}{source}"
-        return await backend.complete(
-            decision.model, full_prompt, system=system, **opts
-        )
+        result = await backend.complete(decision.model, full_prompt, system=system, **opts)
+        self.ledger.record(decision.model, normalise_usage(result.usage))
+        return result
 
     def complete(self, prompt: str, **kw: object) -> CompletionResult:
         """Synchronous convenience wrapper around :meth:`acomplete`.

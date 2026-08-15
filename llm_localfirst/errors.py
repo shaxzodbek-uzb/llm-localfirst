@@ -12,6 +12,7 @@ __all__ = [
     "LocalUnavailable",
     "PrivacyViolation",
     "BackendError",
+    "BudgetExceeded",
 ]
 
 
@@ -33,3 +34,11 @@ class PrivacyViolation(LocalFirstError):
 
 class BackendError(LocalFirstError):
     """Wraps a provider-call failure."""
+
+
+class BudgetExceeded(LocalFirstError):
+    """Raised when a cloud call is blocked because the spend ceiling is used up.
+
+    Like :class:`PrivacyViolation`, this fails closed: the call does not quietly
+    proceed, and it does not silently downgrade to a different model.
+    """
