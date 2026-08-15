@@ -1,9 +1,9 @@
 """MCP-native wrapper: expose the router as an MCP server.
 
-Two tools are exposed over MCP — ``route`` (dry decision, no LLM call beyond a
-cached reachability probe) and ``complete`` (run and return text). The ``mcp``
-SDK is imported lazily inside :func:`build_mcp_server` so importing this module
-never requires the optional extra.
+Three tools are exposed over MCP — ``route`` (dry decision, no LLM call beyond a
+cached reachability probe), ``complete`` (run and return text), and ``usage``
+(this session's token and spend tally). The ``mcp`` SDK is imported lazily inside
+:func:`build_mcp_server` so importing this module never requires the optional extra.
 """
 
 from __future__ import annotations
@@ -26,6 +26,7 @@ def build_mcp_server(router: Router | None = None, *, name: str = "llm-localfirs
       reachability probe, no LLM call.
     - ``complete(prompt, source="", sensitive=False, kind="auto")`` -> the
       completion text from the chosen backend.
+    - ``usage()`` -> token counts and estimated cloud spend for this process.
 
     Args:
         router: The :class:`~llm_localfirst.Router` to wrap. If ``None``, one is
@@ -81,5 +82,14 @@ def build_mcp_server(router: Router | None = None, *, name: str = "llm-localfirs
             kind=kind,
         )
         return result.text
+
+    @server.tool()
+    def usage() -> dict:
+        """Report this session's token use and estimated cloud spend.
+
+        Lets a cloud director see what it has already spent delegating to the local
+        worker versus the cloud. Counts are for this server process only.
+        """
+        return router.ledger.snapshot()
 
     return server

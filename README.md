@@ -151,12 +151,70 @@ See [`examples/manager_worker.py`](examples/manager_worker.py).
 
 ## MCP-native
 
-Expose the router to any MCP client (Claude Desktop, IDEs, agents) as two tools —
-`route` (dry decision) and `complete`:
+Expose the router to any MCP client (Claude Desktop, IDEs, agents) as three tools —
+`route` (dry decision), `complete`, and `usage` (what this session has spent):
 
 ```bash
 pip install "llm-localfirst[mcp]"
 llm-localfirst mcp        # serves over stdio
+```
+
+---
+
+## Cloud spend ceiling
+
+The privacy guarantee answers *may this call leave the machine?*. The other question a
+local-first setup has to answer is *how much has leaving the machine already cost?*
+
+Every completion is accounted automatically — no configuration, no flag:
+
+```python
+router = Router.from_env()
+router.complete("summarise this", source=long_document)
+
+router.ledger.calls("cloud")            # 1
+router.ledger.tokens("local")           # Usage(input_tokens=..., output_tokens=...)
+router.ledger.snapshot()                # JSON-safe, for logs
+```
+
+Give it a ceiling and it stops rather than overspending — the same fail-closed posture as
+the privacy pin, applied to money:
+
+```python
+from llm_localfirst import Budget, Router
+
+router = Router(..., budget=Budget(max_cloud_tokens=200_000))
+...
+llm_localfirst.BudgetExceeded: cloud token budget spent: 203_400/200_000 tokens
+```
+
+**Local calls are never gated.** Capping them would defeat the point of running local — a
+spent cloud budget just means the cloud is closed, and bulk work keeps flowing.
+
+Or by cost, which needs prices:
+
+```bash
+export LF_PRICES='{"haiku": [0.8, 4.0], "sonnet": [3.0, 15.0], "opus": [15.0, 75.0]}'
+export LF_MAX_CLOUD_COST=5.00
+```
+
+Two things this deliberately does *not* do:
+
+- **It ships no price table.** Prices change, and a stale hard-coded number is worse than
+  no number. You supply them — and a cost ceiling **refuses to start** if any allowlisted
+  cloud model lacks a price, rather than sitting silently at `$0.00` and never firing.
+  `max_cloud_tokens` and `max_cloud_calls` are exact and need no configuration at all.
+- **It does not bound a single call.** Token counts only exist once the provider has
+  answered, so the ceiling blocks the *next* cloud call after it is breached. It bounds
+  the overshoot to one call; it cannot bound one call.
+
+The ledger lives in memory, scoped to a `Router`. It's a guard rail for a process, not
+billing — if you need spend enforced across processes, persist `ledger.snapshot()` into
+your own store.
+
+```bash
+llm-localfirst complete "..." --usage    # tally on stderr, completion on stdout
+llm-localfirst doctor                    # shows the budget and which models are priced
 ```
 
 ---
@@ -190,8 +248,11 @@ hardware, that's this library.
   Add more by registering them on the allowlist; it won't grow a hundred provider shims.
 - **Not a content classifier.** *You* tag a call `sensitive=True` (or pick a `kind`). It
   does not guess whether your text is private — it enforces what you declare.
-- **Not load-balancing / semantic caching / cost analytics.** Those are gateway features;
-  this is a routing *policy* with a privacy guarantee.
+- **Not load-balancing or semantic caching.** Those are gateway features; this is a
+  routing *policy* with a privacy guarantee.
+- **Not cost analytics or billing.** The [spend ceiling](#cloud-spend-ceiling) is an
+  in-process guard rail, not a dashboard: counts reset when the process does, and it
+  reports what the provider reported. For real numbers, read your provider's invoice.
 - **Not a prompt firewall.** It controls *where* a call runs, not what's in it.
 
 ---
@@ -209,6 +270,10 @@ All settings are read from the environment (prefix `LF_`) or a `.env` file. See
 | `LF_REASON_MODEL`         | `haiku`                       | cloud model for `kind="reason"`          |
 | `LF_SENSITIVE_FAIL_CLOSED`| `true`                        | keep sensitive calls from ever leaking   |
 | `LF_PROBE_TTL`            | `30.0`                        | seconds to cache the reachability probe  |
+| `LF_PRICES`               | `{}`                          | `{"haiku": [in, out]}` per million tokens |
+| `LF_MAX_CLOUD_CALLS`      | unset                         | ceiling on cloud calls per process       |
+| `LF_MAX_CLOUD_TOKENS`     | unset                         | ceiling on cloud tokens per process      |
+| `LF_MAX_CLOUD_COST`       | unset                         | ceiling on cloud spend (needs `LF_PRICES`) |
 
 ---
 
