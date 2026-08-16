@@ -6,6 +6,40 @@ All notable changes to this project are documented here. The format is based on
 
 ## [Unreleased]
 
+## [0.2.0] — 2026-08-16
+
+### Added
+- **Usage accounting.** Every completion now records its token counts against a
+  `Ledger`, queryable per target or per model (`calls`, `tokens`, `cost`,
+  `by_model`, `snapshot`). A ledger is always created, because accounting costs
+  nothing and a router that can't say what it spent isn't much of a router.
+- **A fail-closed cloud spend ceiling.** `Budget(max_cloud_calls=,
+  max_cloud_tokens=, max_cloud_cost=)` is enforced at the dispatch boundary: once
+  spent, a cloud-bound call raises `BudgetExceeded` rather than quietly
+  overspending. Local calls are never gated — they cost nothing, and gating them
+  would defeat the point of running local.
+- Configuration via `LF_MAX_CLOUD_CALLS`, `LF_MAX_CLOUD_TOKENS`,
+  `LF_MAX_CLOUD_COST` and `LF_PRICES`.
+- `llm-localfirst complete --usage` prints the tally for a call on **stderr**, so
+  redirecting stdout still captures only the completion. `doctor` now reports the
+  configured budget and names any allowlisted cloud model that has no price.
+- MCP: a third tool, `usage`, so a cloud director can see what it has spent
+  delegating to the local worker.
+
+### Notes
+- **No price table ships with this package.** Prices are yours to set via
+  `LF_PRICES` (per million tokens, `[input, output]`). A hard-coded table goes
+  stale silently, and a stale number is worse than no number — so a cost ceiling
+  with an unpriced cloud model in the allowlist is refused at construction time
+  rather than never triggering.
+- Token counts are read from whatever the backend returns and normalised across
+  the common field spellings; a backend that reports nothing contributes zero and
+  is counted separately as an unpriced call.
+
+### Fixed
+- `__version__` still read `0.1.0` in the 0.1.1 release. It now tracks the
+  packaged version.
+
 ## [0.1.1] — 2026-06-20
 
 ### Added
@@ -42,6 +76,7 @@ Initial release.
 - **CLI** (`llm-localfirst`): `doctor`, `route`, `complete`, `mcp`.
 - **Config** (`Settings`, env prefix `LF_`).
 
-[Unreleased]: https://github.com/shaxzodbek-uzb/llm-localfirst/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/shaxzodbek-uzb/llm-localfirst/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/shaxzodbek-uzb/llm-localfirst/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/shaxzodbek-uzb/llm-localfirst/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/shaxzodbek-uzb/llm-localfirst/releases/tag/v0.1.0

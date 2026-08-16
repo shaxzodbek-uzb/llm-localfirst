@@ -28,7 +28,7 @@ from .registry import ModelRef, Registry, default_registry
 from .router import Router
 from .usage import Budget, CallRecord, Ledger, Price, Usage
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 __all__ = [
     "Router",
